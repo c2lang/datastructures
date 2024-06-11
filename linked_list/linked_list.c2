@@ -1,0 +1,81 @@
+/* Copyright 2022-2024 Bas van den Berg
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+module linked_list;
+
+public type Element struct {
+    Element* prev;
+    Element* next;
+}
+
+public fn void Element.init(Element* src) {
+    src.prev = src;
+    src.next = src;
+}
+
+public fn void Element.addTail(Element* src, Element* item) {
+    Element* old_tail = src.prev;
+    src.prev = item;
+    item.next = src;
+    item.prev = old_tail;
+    old_tail.next = item;
+}
+
+public fn void Element.addFront(Element* src, Element* item) @(unused) {
+    Element* old_head = src.next;
+    old_head.prev = item;
+    item.next = old_head;
+    item.prev = src;
+    src.next = item;
+}
+
+public fn Element* Element.popFront(Element* item) {
+    Element* node = item.next;
+    node.remove();
+    return node;
+}
+
+public fn void Element.remove(Element* item) {
+    Element* prev = item.prev;
+    Element* next = item.next;
+    prev.next = next;
+    next.prev = prev;
+}
+
+public fn u64 Element.size(const Element* src) @(unused) {
+    u64 count = 0;
+    Element* node = src.next;
+    while (node != src) {
+        count++;
+        node = node.next;
+    }
+    return count;
+}
+
+public fn bool Element.isEmpty(const Element* src) {
+    return src.next == src;
+}
+
+public fn void Element.move(Element* src, Element* dest) @(unused) {
+    Element* node = src.next;
+
+    while (node != src) {
+        Element* tmp = node;
+        node = node.next;
+        tmp.remove();
+        dest.addTail(tmp);
+    }
+}
+

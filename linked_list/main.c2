@@ -1,0 +1,35 @@
+module test;
+
+import linked_list;
+
+import stdio local;
+
+type MyElement struct {
+    u32 value;
+    linked_list.Element list;
+}
+
+public fn i32 main() {
+    MyElement[20] elements;
+
+    linked_list.Element list1;
+    list1.init();
+
+    for (u32 i=0; i<elemsof(elements); i++) {
+        MyElement* e = &elements[i];
+        e.list.init();
+        e.value = i;
+        list1.addTail(&e.list);
+    }
+
+    linked_list.Element* cur = list1.next;
+    while (cur != &list1) {
+        MyElement* e = to_container(MyElement, list, cur);
+        printf("element %d\n", e.value);
+        cur = cur.next;
+    }
+
+    return 0;
+}
+
+

@@ -1,6 +1,14 @@
 
 plugin refs_generator
 
+executable linked_list
+    $warnings no-unused
+	$backend c
+
+    linked_list/linked_list.c2
+    linked_list/main.c2
+end
+
 executable unique_queue
     $warnings no-unused
 	$backend c
