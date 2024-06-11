@@ -9,6 +9,14 @@ executable linked_list
     linked_list/main.c2
 end
 
+executable string_pool
+    $warnings no-unused
+	$backend c
+
+    string_pool/string_pool.c2
+    string_pool/main.c2
+end
+
 executable unique_queue
     $warnings no-unused
 	$backend c

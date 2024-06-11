@@ -1,0 +1,26 @@
+module test;
+
+import string_pool;
+
+import stdio local;
+
+string_pool.Pool* pool;
+
+fn void add(const char* str) {
+    u32 idx = pool.addStr(str, true);
+    printf("%s -> %d\n", str, idx);
+}
+
+public fn i32 main() {
+    pool = string_pool.create(1024, 256);
+
+    add("foo");
+    add("bar");
+    add("faa");
+    add("foo");
+
+    pool.free();
+    return 0;
+}
+
+
