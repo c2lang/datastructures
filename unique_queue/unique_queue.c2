@@ -1,0 +1,54 @@
+/* Copyright 2022-2024 Bas van den Berg
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+module unique_queue;
+
+public const u32 MAX = 32;
+
+public type Queue struct {
+    u8 head;
+    u8 tail;
+    u8[MAX] data;
+}
+
+public fn void Queue.init(Queue* q) {
+    q.head =  0;
+    q.tail = 0;
+}
+
+public fn void Queue.add(Queue* q, u8 value) {
+    u8 index = q.tail;
+    while (index != q.head) {
+        if (q.data[index] == value) return; // already in
+        index = (index + 1) % MAX;
+    }
+
+    if ((q.head + 1) % MAX == q.tail) {
+        assert(0);
+        return;
+    }
+
+    q.data[q.head] = value;
+    q.head = (q.head + 1) % MAX;
+}
+
+public fn u8 Queue.get(Queue* q) {
+    if (q.head == q.tail) return 0;
+
+    u8 value = q.data[q.tail];
+    q.tail = (q.tail + 1) % MAX;
+    return value;
+}
+

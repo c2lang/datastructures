@@ -1,0 +1,43 @@
+module test;
+
+import stdio local;
+import unique_queue;
+
+unique_queue.Queue q;
+
+fn void add(u8 value) {
+    printf("add %d\n", value);
+    q.add(value);
+}
+
+fn void get() {
+    u8 value = q.get();
+    printf("get %d\n", value);
+}
+
+public fn i32 main() {
+    q.init();
+
+    add(2);
+    add(3);
+    add(4);
+    add(2);
+
+    get();
+    get();
+    get();
+    add(2);
+    get();
+    get();
+    for (u8 i = 1; i < 32; i++) {
+        add(i);
+    }
+    for (u8 i = 1; i < 32; i++) {
+        get();
+    }
+    get();
+
+    return 0;
+}
+
+

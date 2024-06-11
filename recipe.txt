@@ -1,0 +1,12 @@
+
+plugin refs_generator
+
+executable unique_queue
+    $warnings no-unused
+	$backend c
+
+    unique_queue/unique_queue.c2
+#    unique_queue/unique_queue_dump.c2
+    unique_queue/main.c2
+end
+
