@@ -1,0 +1,254 @@
+module tree_main;
+
+import color;
+import file_utils;
+import radix_tree local;
+import terminal as term;
+
+import c_errno local;
+import ctype;
+import stdio local;
+import string local;
+import stdlib local;
+import sys_time;
+import unistd local;
+import libc_fcntl local;
+
+u32 g_count;
+bool g_print_words;
+char* g_input;
+u64 g_duration;
+
+fn u64 now() {
+    sys_time.Timeval tv;
+    sys_time.gettimeofday(&tv, nil);
+    u64 now64 = cast<u64>(tv.tv_sec);
+    now64 *= 1000000;
+    now64 += tv.tv_usec;
+    return now64;
+}
+
+// NOTE: we require a newline after a word
+fn void add_words(const char* input, Tree* t) {
+    u64 t1 = now();
+    const char* start = input;
+    const char* cp = start;
+    u32 count = 0;
+    while (*cp) {
+        if (*cp == '\n') {
+            char[256] word;
+            u32 len = cast<u32>(cp - start);
+            assert(len < 256);
+            memcpy(word, start, len);
+            word[len] = 0;
+            if (len) {
+#if RadixTreeValue
+                //printf("ADD %s %d\n", word, count+1);
+                t.add(word, len, count+1);
+#else
+                t.add(word, len);
+#endif
+            }
+            start = cp+1;
+            cp = start;
+            count++;
+        } else {
+            cp++;
+        }
+    }
+    u64 t2 = now();
+    printf("adding %d words took %d usec\n", count, t2 - t1);
+}
+
+#if RadixTreeValue
+fn void count_match(void* arg, const char* option, u32 value) {
+#else
+fn void count_match(void* arg, const char* option) {
+#endif
+    g_count++;
+}
+
+#if RadixTreeValue
+fn void print_match(void* arg, const char* option, u32 value) {
+    // TEMP hack around bad terminal control
+    if (g_count == 0) printf("\n");
+    printf("  %s%s%s%s  %d\n", g_input, color.Red, option, color.Normal, value);
+
+    g_count++;
+}
+#else
+fn void print_match(void* arg, const char* option) {
+    // TEMP hack around bad terminal control
+    if (g_count == 0) printf("\n");
+    printf("  %s%s%s%s\n", g_input, color.Red, option, color.Normal);
+
+    g_count++;
+}
+#endif
+
+fn void find(Tree* t, bool print_words) {
+    g_print_words = false;
+    g_count = 0;
+    g_duration = 0;
+    if (g_input[0] == 0) return;
+    //first run just to get count
+    u64 t1 = now();
+    t.find(g_input, count_match, nil);
+    u64 t2 = now();
+    if (g_count > 50 && !print_words) {
+        g_duration = t2 - t1;
+        printf("\ntoo many matches\n");
+        return;
+    }
+
+    g_print_words = true;
+    g_count = 0;
+    t1 = now();
+    t.find(g_input, print_match, nil);
+    t2 = now();
+    g_duration = t2 - t1;
+}
+
+fn void store_tree(Tree* t, const char* filename) {
+    printf("storing %s\n", filename);
+    i32 fd = open(filename, O_CREAT | O_WRONLY | O_CLOEXEC | O_TRUNC, 0660);
+    if (fd == -1) {
+        fprintf(stderr, "Error creating %s: %s\n", filename, strerror(*errno2()));
+        return;
+    }
+
+    t.store(fd);
+    close(fd);
+}
+
+fn Tree* load_from_file(file_utils.Reader* file, const char* filename) {
+    u64 t1 = now();
+    if (!file.open(filename)) {
+        fprintf(stderr, "Error opening %s: %s\n", filename, strerror(*errno2()));
+        exit(EXIT_FAILURE);
+    }
+    InputStream stream = { cast<u8*>(file.region), file.size }
+    Tree* t = radix_tree.load(&stream);
+    // note: Tree references file data, dont close file!
+    if (!t) {
+        fprintf(stderr, "invalid file\n");
+        exit(EXIT_FAILURE);
+    }
+    u64 t2 = now();
+    printf("loading %s tok %d usec\n", filename, t2 - t1);
+    return t;
+}
+
+fn Tree* load_from_dictionary(const char* filename) {
+    printf("creating from dictionary %s\n", filename);
+    file_utils.Reader file;
+    if (!file.open(filename)) {
+        fprintf(stderr, "Error opening %s: %s\n", filename, strerror(*errno2()));
+        exit(EXIT_FAILURE);
+    }
+
+    Tree* t = radix_tree.create(32*1024, 32*1024);
+    add_words(file.char_data(), t);
+    file.close();
+
+    t.dump(false, false, false);
+    u64 t1 = now();
+    t.trim();
+    u64 t2 = now();
+    printf("trim took %d usec\n", t2 - t1);
+    return t;
+}
+
+#if RadixTreeValue
+fn void find_word(const Tree* t, const char* word) {
+    u32 result = 0;
+    bool found = t.get_value(word, &result);
+    if (found) {
+        printf("found '%s' -> %d\n", word, result);
+    } else {
+        printf("NOT found '%s'\n", word);
+    }
+}
+#endif
+
+public fn i32 main(i32 argc, char** argv) {
+    const char* filename = "words.txt";
+    const char* binfile = "tree.bin";
+    if (argc >= 2) filename = argv[1];
+
+    Tree* t = nil;
+    file_utils.Reader file = {}
+    if (argc <= 2) {
+        t = load_from_dictionary(filename);
+    } else {
+        t = load_from_file(&file, binfile);
+    }
+
+    t.dump(false, false, false);
+    //store_tree(t, binfile);
+    //t.dump_words();
+
+    term.init();
+
+    char[32] input;
+    u32 len = 0;
+    input[0] = 0;
+    g_input = input;
+
+
+    bool done = false;
+    if (!isatty(1)) done = true;
+    while (!done) {
+        print_prompt(input, len);
+        char c = term.read_char();
+        switch (c) {
+        case 9: // tab
+            const char* completion = t.complete(input);
+            if (completion) {
+                strcpy(input + len, completion);
+                len += cast<u32>(strlen(completion));
+            }
+            find(t, true);
+            break;
+        case 27:    // escape
+            done = true;
+            break;
+        case 127:   // backspace
+            if (len) len--;
+            input[len] = 0;
+            find(t, false);
+            break;
+        case '\n': // newline
+            len = 0;
+            input[0] = 0;
+            g_count = 0;
+            g_duration = 0;
+            break;
+        default:
+            if (ctype.isprint(c)) {
+                if (len + 1 == sizeof(input)) break;
+                input[len] = c;
+                input[len+1] = 0;
+                len++;
+                find(t, false);
+            } else {
+                done = true;
+            }
+            break;
+        }
+    }
+    printf("\n");
+
+    if (file.isOpen()) file.close();
+    term.reset();
+    t.free();
+
+	return 0;
+}
+
+fn void print_prompt(char* input, u32 len) {
+    printf("\033[2K");  // clear line
+    printf("\r %6d usec %4d > %s", g_duration, g_count, input);
+    fflush(stdout);
+}
+

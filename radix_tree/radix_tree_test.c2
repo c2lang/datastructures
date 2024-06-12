@@ -1,0 +1,52 @@
+module tests;
+
+import radix_tree local;
+
+import c2test local;
+
+type Test struct @(unittest) {
+    Tree* tree;
+    u32 matches;
+}
+
+fn void on_match(void* arg, const char* text, u32 value) {
+    Test* t = arg;
+    t.matches++;
+}
+
+fn void Test.setup(Test* t) {
+    t.tree = radix_tree.create(10024, 1024);
+    check_not_nil(t.tree);
+    t.matches = 0;
+}
+
+fn void Test.teardown(Test* t) {
+    t.tree.free();
+}
+
+fn void Test.test1(Test* t) {
+    t.tree.add("foo", 3, 1);
+    check_str("oo", t.tree.complete("f"));
+    u32 value = 0;
+    check_true(t.tree.get_value("foo", &value));
+    check_eq(1, value);
+    t.tree.find("foo", on_match, t);
+    check_eq(1, t.matches);
+
+    t.tree.add("bar", 3, 2);
+    check_true(t.tree.get_value("bar", &value));
+    check_eq(2, value);
+    t.matches = 0;
+    t.tree.find("b", on_match, t);
+    check_eq(1, t.matches);
+
+    t.tree.add("faa", 3, 3);
+    t.matches = 0;
+    t.tree.find("f", on_match, t);
+    check_eq(2, t.matches);
+
+    t.matches = 0;
+    t.tree.find("fa", on_match, t);
+    check_eq(1, t.matches);
+}
+

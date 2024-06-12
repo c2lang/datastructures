@@ -26,3 +26,61 @@ executable unique_queue
     unique_queue/main.c2
 end
 
+
+
+executable radix_tree
+    $warnings no-unused-variable
+    $warnings no-unused-function
+    $warnings no-unused-parameter
+    $warnings no-unused-public
+    $backend c
+    $plugin refs_generator [all-targets]
+
+    utils/color.c2
+    utils/reader.c2
+    utils/terminal.c2
+
+    linked_list/linked_list.c2
+
+    radix_tree/radix_tree.c2
+    radix_tree/radix_tree_fs.c2
+    radix_tree/radix_tree_dump.c2
+	radix_tree/main.c2
+end
+
+executable radix_tree2
+    $warnings no-unused-variable
+    $warnings no-unused-function
+    $warnings no-unused-parameter
+    $warnings no-unused-public
+    $backend c
+    $config RadixTreeValue
+
+    utils/color.c2
+    utils/reader.c2
+    utils/terminal.c2
+
+    linked_list/linked_list.c2
+
+    radix_tree/radix_tree.c2
+    radix_tree/radix_tree_fs.c2
+    radix_tree/radix_tree_dump.c2
+	radix_tree/main.c2
+end
+
+executable radix_tree_tests
+    $warnings no-unused-variable
+    $warnings no-unused-function
+    $warnings no-unused-parameter
+    $warnings no-unused-public
+    $backend c
+    $config RadixTreeValue
+    $plugin unit_test []
+
+    linked_list/linked_list.c2
+    radix_tree/radix_tree.c2
+
+	radix_tree/radix_tree_test.c2
+    radix_tree/test_main.c2
+end
+
