@@ -17,7 +17,6 @@ module string_pool;
 
 import string;
 import stdlib;
-import stdio;
 
 type Color enum u8 { Black, Red }
 type Dir enum u8 { Left, Right }
