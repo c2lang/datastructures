@@ -1,10 +1,10 @@
 module test;
 
-import string_pool;
+import string_pool { Pool }
 
-import stdio local;
+import stdio { printf }
 
-string_pool.Pool* pool;
+Pool* pool;
 
 fn void add(const char* str) {
     u32 idx = pool.addStr(str, true);

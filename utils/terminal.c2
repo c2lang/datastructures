@@ -15,9 +15,9 @@
 
 module terminal;
 
-import unistd local;
-import sys_ioctl local;
-import ctermios local;
+import unistd { * }
+import sys_ioctl { * }
+import ctermios { * }
 
 Termios old;
 Termios new;

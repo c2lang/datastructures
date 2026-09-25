@@ -1,9 +1,9 @@
 module test;
 
-import stdio local;
-import unique_queue;
+import stdio { printf }
+import unique_queue { Queue }
 
-unique_queue.Queue q;
+Queue q;
 
 fn void add(u8 value) {
     printf("add %d\n", value);

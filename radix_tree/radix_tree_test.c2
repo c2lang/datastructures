@@ -1,8 +1,8 @@
 module tests;
 
-import radix_tree local;
+import radix_tree { * }
 
-import c2test local;
+import c2test { * }
 
 type Test struct @(unittest) {
     Tree* tree;

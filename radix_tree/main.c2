@@ -2,17 +2,17 @@ module tree_main;
 
 import color;
 import file_utils;
-import radix_tree local;
+import radix_tree { * }
 import terminal as term;
 
-import c_errno local;
+import c_errno { errno }
 import ctype;
-import stdio local;
-import string local;
-import stdlib local;
+import stdio { printf, fprintf, stderr, fflush, stdout }
+import string { memcpy, strerror, strcpy, strlen }
+import stdlib { exit, EXIT_FAILURE }
 import sys_time;
-import unistd local;
-import libc_fcntl local;
+import unistd { * }
+import libc_fcntl { * }
 
 u32 g_count;
 bool g_print_words;
@@ -22,7 +22,7 @@ u64 g_duration;
 fn u64 now() {
     sys_time.Timeval tv;
     sys_time.gettimeofday(&tv, nil);
-    u64 now64 = cast<u64>(tv.tv_sec);
+    u64 now64 = (u64)tv.tv_sec;
     now64 *= 1000000;
     now64 += tv.tv_usec;
     return now64;
@@ -37,7 +37,7 @@ fn void add_words(const char* input, Tree* t) {
     while (*cp) {
         if (*cp == '\n') {
             char[256] word;
-            u32 len = cast<u32>(cp - start);
+            u32 len = (u32)(cp - start);
             assert(len < 256);
             memcpy(word, start, len);
             word[len] = 0;
@@ -113,7 +113,7 @@ fn void store_tree(Tree* t, const char* filename) {
     printf("storing %s\n", filename);
     i32 fd = open(filename, O_CREAT | O_WRONLY | O_CLOEXEC | O_TRUNC, 0660);
     if (fd == -1) {
-        fprintf(stderr, "Error creating %s: %s\n", filename, strerror(*errno2()));
+        fprintf(stderr, "Error creating %s: %s\n", filename, strerror(errno));
         return;
     }
 
@@ -124,10 +124,10 @@ fn void store_tree(Tree* t, const char* filename) {
 fn Tree* load_from_file(file_utils.Reader* file, const char* filename) {
     u64 t1 = now();
     if (!file.open(filename)) {
-        fprintf(stderr, "Error opening %s: %s\n", filename, strerror(*errno2()));
+        fprintf(stderr, "Error opening %s: %s\n", filename, strerror(errno));
         exit(EXIT_FAILURE);
     }
-    InputStream stream = { cast<u8*>(file.region), file.size }
+    InputStream stream = { (u8*)(file.region), file.size }
     Tree* t = radix_tree.load(&stream);
     // note: Tree references file data, dont close file!
     if (!t) {
@@ -143,7 +143,7 @@ fn Tree* load_from_dictionary(const char* filename) {
     printf("creating from dictionary %s\n", filename);
     file_utils.Reader file;
     if (!file.open(filename)) {
-        fprintf(stderr, "Error opening %s: %s\n", filename, strerror(*errno2()));
+        fprintf(stderr, "Error opening %s: %s\n", filename, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -151,7 +151,7 @@ fn Tree* load_from_dictionary(const char* filename) {
     add_words(file.char_data(), t);
     file.close();
 
-    t.dump(false, false, false);
+    t.dump(false);
     u64 t1 = now();
     t.trim();
     u64 t2 = now();
@@ -184,7 +184,7 @@ public fn i32 main(i32 argc, char** argv) {
         t = load_from_file(&file, binfile);
     }
 
-    t.dump(false, false, false);
+    t.dump(false);
     //store_tree(t, binfile);
     //t.dump_words();
 
@@ -206,7 +206,7 @@ public fn i32 main(i32 argc, char** argv) {
             const char* completion = t.complete(input);
             if (completion) {
                 strcpy(input + len, completion);
-                len += cast<u32>(strlen(completion));
+                len += (u32)strlen(completion);
             }
             find(t, true);
             break;

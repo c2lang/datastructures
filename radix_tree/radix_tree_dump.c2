@@ -1,4 +1,4 @@
-/* Copyright 2023-2023 Bas van den Berg
+/* Copyright 2022-2026 Bas van den Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 
 module radix_tree;
 
-import linked_list;
+import linked_list { Element }
 
-import stdio local;
+import stdio { printf }
 
 fn void Tree.dump_nodes(const Tree* t, u32 idx, u32 end) {
     while (idx < end) {
@@ -40,7 +40,15 @@ fn void Tree.dump_nodes(const Tree* t, u32 idx, u32 end) {
     }
 }
 
-public fn void Tree.dump(const Tree* t, bool print_nodes, bool print_words, bool print_stats) {
+
+public fn void Tree.dump(const Tree* t, bool verbose) {
+    u32 num_words = t.count_words();
+    u32 total_size = t.used_nodes() + t.words.size;
+    printf("  symbols: %7d bytes  %d words\n", total_size, num_words);
+    if (verbose) t.dump2(true, true, false);
+}
+
+fn void Tree.dump2(const Tree* t, bool print_nodes, bool print_words, bool print_stats) {
     u32 used = t.used_nodes();
     u32 num_words = t.count_words();
     printf("---- %d words, total size %d, wasted %d ----\n", num_words, used + t.words.size, t.wasted);
@@ -48,7 +56,7 @@ public fn void Tree.dump(const Tree* t, bool print_nodes, bool print_words, bool
     printf("---- nodes (%d/%d, root %d) ----\n", used, t.nodes.capacity, t.nodes.root_idx);
     if (print_nodes) {
         u32 idx = sizeof(Node);
-        linked_list.Element* cur = t.used_zones.next;
+        Element* cur = t.used_zones.next;
         while (cur != &t.used_zones) {
             Zone* z = to_container(Zone, list, cur);
             // TODO also dumps wasted nodes!
@@ -67,7 +75,7 @@ public fn void Tree.dump(const Tree* t, bool print_nodes, bool print_words, bool
             printf("  [%5d] %s\n", idx, cp);
             while (*cp) cp++;
             cp++;
-            idx = cast<u32>(cp - t.words.data);
+            idx = (u32)(cp - t.words.data);
         }
     }
     //t.dump_zones();
@@ -93,7 +101,7 @@ fn void count_word(void* arg, const char* text) {
 }
 #endif
 
-public fn void Tree.dump_words(const Tree* t) {
+public fn void Tree.dump_words(const Tree* t) @(unused) {
     if (t.nodes.root_idx == 0) return;
 
     Iter iter = { print_word, nil, 0 }
@@ -109,9 +117,9 @@ fn u32 Tree.count_words(const Tree* t) {
     return count;
 }
 
-fn void Tree.dump_zones(const Tree* t) {
+fn void Tree.dump_zones(const Tree* t) @(unused) {
     printf("---- zones ----\n");
-    linked_list.Element* cur = t.used_zones.next;
+    Element* cur = t.used_zones.next;
     while (cur != &t.used_zones) {
         Zone* z = to_container(Zone, list, cur);
         printf("  %7d  %7d\n", z.start, z.size);
@@ -120,7 +128,7 @@ fn void Tree.dump_zones(const Tree* t) {
 }
 
 fn void Tree.dump_stats(const Tree* t) {
-    Stats stats = {}
+    Stats stats = { }
     t.stats_iter(t.nodes.root_idx, &stats);
     printf("---- stats (%d leaves, %d internal) ----\n", stats.leaf_nodes, stats.internal_nodes);
     for (u32 i=0; i<elemsof(stats.children); i++) {
